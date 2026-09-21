@@ -58,7 +58,23 @@
 
       .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 64px; }
 
-      header { padding: 28px 0 18px; }
+      header { padding: 28px 0 18px; position: relative; }
+      .reset {
+        position: absolute;
+        top: 28px;
+        right: 0;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink-soft);
+        border-radius: 8px;
+        padding: 7px 14px;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .reset:hover { border-color: var(--accent); color: var(--accent); }
+      .reset:disabled { opacity: .5; cursor: default; }
+      @media (max-width: 620px) { .reset { position: static; margin-top: 12px; } }
       h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.02em; }
       .tagline { color: var(--ink-soft); font-size: 15px; max-width: 62ch; margin: 0; }
 
@@ -269,6 +285,9 @@
           if it were still true. Tell it something, then ask it something.
         </p>
         <div class="counts" id="counts"></div>
+        <button class="reset" id="reseed" title="Rebuild the database from the sample data">
+          Start over
+        </button>
       </header>
 
       <div id="decide-slot"></div>
@@ -746,6 +765,31 @@
           b.addEventListener("click", () => ask(b.dataset.q));
         }
       }
+
+      $("reseed").addEventListener("click", async () => {
+        const button = $("reseed");
+        button.disabled = true;
+        button.textContent = "Rebuilding...";
+        try {
+          const out = await api("/api/reseed", { method: "POST" });
+          state = out.state;
+          lastQuestion = "";
+          $("tell-result").innerHTML = "";
+          $("ask-result").innerHTML = "";
+          $("narration").hidden = true;
+          for (const done of document.querySelectorAll("#tour button.done")) {
+            done.classList.remove("done");
+          }
+          redraw();
+          await ask("where do I live");
+          toast("Back to the starting data.");
+        } catch (e) {
+          toast(e.message);
+        } finally {
+          button.disabled = false;
+          button.textContent = "Start over";
+        }
+      });
 
       $("tell-go").addEventListener("click", () => tell($("tell").value));
       $("tell").addEventListener("keydown", (e) => {

@@ -1,10 +1,11 @@
 import { createServer, type IncomingMessage } from "node:http";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { allAttributes } from "../domain/attributes.ts";
 import { MemoryEngineError } from "../domain/errors.ts";
 import { MemoryEngine } from "../engine.ts";
+import { buildFixture } from "../fixture/loader.ts";
 
 /**
  * The web front end for the memory engine.
@@ -26,7 +27,49 @@ const flag = (name: string, fallback: string): string => {
 const port = Number(flag("port", "4321"));
 const location = flag("db", "data/memory.db");
 
-const engine = new MemoryEngine({ location });
+let engine = new MemoryEngine({ location });
+
+/**
+ * Rebuilds the database from the committed fixture, in this process.
+ *
+ * Doing it here rather than from the CLI matters on Windows: this process holds the SQLite
+ * file open, so an external `reset` fails with EBUSY while the server is running. Closing
+ * first, rebuilding, then reopening sidesteps the lock entirely -- which makes rehearsing a
+ * demo a single click instead of stop, reset, seed, restart.
+ */
+function reseedFromFixture(): void {
+  if (location === ":memory:") {
+    throw new MemoryEngineError(
+      "This server is running on an in-memory database, so there is no file to rebuild.",
+      "NO_DATABASE_FILE",
+    );
+  }
+
+  engine.close();
+  try {
+    const path = resolve(location);
+    for (const suffix of ["", "-wal", "-shm"]) {
+      const target = `${path}${suffix}`;
+      if (existsSync(target)) rmSync(target);
+    }
+
+    // buildFixture opens its own engine on a manual clock, so the rebuilt database has the
+    // same timestamps and ids as `mem seed` and as the benchmark.
+    const fixture = buildFixture({ location });
+    const failures = fixture.scriptFailures;
+    fixture.engine.close();
+
+    if (failures.length > 0) {
+      throw new MemoryEngineError(
+        `The fixture did not replay cleanly: ${failures[0]}`,
+        "FIXTURE_REPLAY_FAILED",
+      );
+    }
+  } finally {
+    // Always reopen, even if the rebuild failed, or the server is dead for every later request.
+    engine = new MemoryEngine({ location });
+  }
+}
 
 /** Collects a JSON request body, with a small cap so a stray upload cannot exhaust memory. */
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
@@ -141,6 +184,13 @@ const server = createServer((request, response) => {
           superseded: outcome.superseded,
           state: snapshot(),
         });
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/reseed") {
+        reseedFromFixture();
+        console.log("  database rebuilt from the fixture");
+        sendJson(200, { state: snapshot() });
         return;
       }
 
