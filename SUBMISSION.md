@@ -377,16 +377,28 @@ How the output was reviewed rather than trusted:
 
 ## Credibility note
 
-> **TODO — fill in before submitting.** A college project, internship, freelance build or
-> open-source contribution all count. Specificity is what matters: what **you** decided and
-> what it cost, not what a team delivered.
+I helped build and ship a **Test Management System** that enabled organizations to conduct and
+manage online and offline tests for **8,000+ users**.
 
-- **The product or system, and the problem it solved:**
-- **Your personal contribution:**
-- **Scale or operational complexity:**
-- **One difficult engineering or product decision** — the options, what you chose, what you
-  gave up, and how it turned out:
-- **Public link or other evidence:**
+- **Problem solved:** Centralized test creation, scheduling, user management, test attempts and
+  result generation, reducing manual effort and improving the reliability of test operations.
+- **My contribution:** Full-stack development using **Next.js, React, NestJS, MongoDB and
+  Socket.IO**. I implemented RBAC, the test and result workflows, dashboards, APIs, database
+  queries and aggregations, and the real-time functionality.
+- **Scale and complexity:** 8,000+ users, large test datasets, and role-based access across
+  several user and administrator roles. I worked on database indexing and query optimisation to
+  keep result generation and reporting performant.
+- **Difficult engineering decision:** Result calculation was the pressure point. The
+  straightforward approach — pulling large datasets into application memory and computing there
+  — did not hold up as test volumes grew. I moved the work into the database instead, using
+  **MongoDB indexes and aggregation pipelines**. The trade-off I accepted was that the
+  aggregation logic now lives in query definitions rather than in readable application code,
+  which is harder to unit-test and to onboard someone onto. I judged that acceptable because it
+  kept the overall architecture simple — no caching tier, no precomputed result tables and no
+  background job pipeline to keep in sync — and the performance held.
+- **Evidence:** Built as an internal product at my previous company, so there is no public
+  repository or case study. I am happy to walk through the architecture and the specific
+  queries live.
 
-The memory engine in `solution/` was built for this challenge and is not prior shipped work;
-it should be assessed as challenge output, not as evidence of production experience.
+The memory engine in `solution/` was built for this challenge and is not prior shipped work; it
+should be assessed as challenge output, not as evidence of production experience.
