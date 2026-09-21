@@ -1,0 +1,180 @@
+{
+  "name": "retrieval expectations",
+  "description": "Fixed queries with the memories that must and must not come back. `mustExclude` entries that are superseded or deleted are additionally required to appear in the result's `excluded` list with the matching reason -- proving the memory was scored, considered and withheld by the lifecycle rather than simply never matched.",
+  "defaults": { "limit": 5 },
+  "queries": [
+    {
+      "id": "q01",
+      "query": "where do I live",
+      "intent": "The current city, not the two the user has left.",
+      "mustInclude": ["city-pune-2"],
+      "mustExclude": ["city-pune-1", "city-mumbai"]
+    },
+    {
+      "id": "q02",
+      "query": "what city am I based in",
+      "intent": "Different phrasing, same slot, same answer.",
+      "mustInclude": ["city-pune-2"],
+      "mustExclude": ["city-mumbai", "city-pune-1"]
+    },
+    {
+      "id": "q03",
+      "query": "Pune",
+      "intent": "The decisive identity test. Two memories hold the value Pune; only the newer one is current, and the original stays superseded rather than being revived.",
+      "mustInclude": ["city-pune-2"],
+      "mustExclude": ["city-pune-1"]
+    },
+    {
+      "id": "q04",
+      "query": "Mumbai",
+      "intent": "A superseded value must never surface, even when it is the only textual match in the store.",
+      "expectEmpty": true,
+      "mustExclude": ["city-mumbai"]
+    },
+    {
+      "id": "q05",
+      "query": "who do I work for",
+      "intent": "Current employer only; both previous employers are superseded.",
+      "mustInclude": ["employer-initech"],
+      "mustExclude": ["employer-acme", "employer-globex"]
+    },
+    {
+      "id": "q06",
+      "query": "Acme",
+      "intent": "Two-link chain: the root of the employer chain is still withheld.",
+      "expectEmpty": true,
+      "mustExclude": ["employer-acme"]
+    },
+    {
+      "id": "q07",
+      "query": "what is my job title",
+      "intent": "The promotion superseded the old title.",
+      "mustInclude": ["title-senior"],
+      "mustExclude": ["title-junior"]
+    },
+    {
+      "id": "q08",
+      "query": "am I vegetarian",
+      "intent": "The query term is the stale value. Relevance must not override lifecycle.",
+      "mustInclude": ["diet-vegan"],
+      "mustExclude": ["diet-vegetarian"]
+    },
+    {
+      "id": "q09",
+      "query": "vegan",
+      "intent": "Direct value match on the current fact.",
+      "mustInclude": ["diet-vegan"],
+      "mustExclude": ["diet-vegetarian"]
+    },
+    {
+      "id": "q10",
+      "query": "my timezone",
+      "intent": "Current time zone only.",
+      "mustInclude": ["tz-cet"],
+      "mustExclude": ["tz-ist"]
+    },
+    {
+      "id": "q11",
+      "query": "what is my phone number",
+      "intent": "The current number was purged and the previous one is superseded, so the correct answer is nothing at all -- not the old number.",
+      "expectEmpty": true,
+      "mustExclude": ["phone-old", "phone-new"]
+    },
+    {
+      "id": "q12",
+      "query": "what are my allergies",
+      "intent": "Multi-valued attribute: every value is current and all must come back.",
+      "mustInclude": ["allergy-peanuts", "allergy-shellfish", "allergy-pollen"]
+    },
+    {
+      "id": "q13",
+      "query": "peanuts",
+      "intent": "Value match on one member of a multi-valued attribute.",
+      "mustInclude": ["allergy-peanuts"]
+    },
+    {
+      "id": "q14",
+      "query": "what music do I like",
+      "intent": "A soft-deleted preference must not come back, while its siblings still do.",
+      "mustInclude": ["likes-hiking", "likes-coffee"],
+      "mustExclude": ["likes-jazz"]
+    },
+    {
+      "id": "q15",
+      "query": "jazz",
+      "intent": "Deleted memories are withheld even on an exact value match.",
+      "expectEmpty": true,
+      "mustExclude": ["likes-jazz"]
+    },
+    {
+      "id": "q16",
+      "query": "filter coffee",
+      "intent": "Multi-token value match.",
+      "mustInclude": ["likes-coffee"]
+    },
+    {
+      "id": "q17",
+      "query": "what do I dislike",
+      "intent": "likes and dislikes are separate attributes and must not bleed into each other.",
+      "mustInclude": ["dislikes-trains", "dislikes-spicy"],
+      "mustExclude": ["likes-hiking", "likes-coffee"]
+    },
+    {
+      "id": "q18",
+      "query": "what programming languages do I know",
+      "intent": "Three skills, all current, within the result limit.",
+      "mustInclude": ["skill-ts", "skill-pg", "skill-k8s"]
+    },
+    {
+      "id": "q19",
+      "query": "do I have pets",
+      "intent": "Folded plural must still reach the singular attribute alias.",
+      "mustInclude": ["pet-mishti", "pet-laddoo"]
+    },
+    {
+      "id": "q20",
+      "query": "what are my goals",
+      "intent": "All three goals are current.",
+      "mustInclude": ["goal-rust", "goal-go", "goal-marathon"]
+    },
+    {
+      "id": "q21",
+      "query": "what tools do I use",
+      "intent": "Attribute alias match on a multi-valued attribute.",
+      "mustInclude": ["tool-vscode", "tool-tmux", "tool-figma"]
+    },
+    {
+      "id": "q22",
+      "query": "do I work remotely",
+      "intent": "An unresolved contradiction: both values come back, flagged contested, and neither is presented as settled.",
+      "mustInclude": ["workmode-remotely", "workmode-hybrid"],
+      "expectContested": true
+    },
+    {
+      "id": "q23",
+      "query": "what name do I prefer",
+      "intent": "The second ambiguous conflict. Sam and Samir both stay active.",
+      "mustInclude": ["name-sam", "name-samir"],
+      "expectContested": true
+    },
+    {
+      "id": "q24",
+      "query": "where did I used to live",
+      "intent": "A documented limitation. The engine has no model of tense, so it answers with the current city and the superseded ones stay withheld. Recorded here so the gap is visible rather than discovered later.",
+      "mustInclude": ["city-pune-2"],
+      "mustExclude": ["city-mumbai", "city-pune-1"]
+    },
+    {
+      "id": "q25",
+      "query": "tell me about my cat Mishti",
+      "intent": "Attribute alias and value token both match the same memory.",
+      "mustInclude": ["pet-mishti"]
+    },
+    {
+      "id": "q26",
+      "query": "quantum chromodynamics",
+      "intent": "Nothing relevant exists. Retrieval must return nothing rather than the best of a bad set.",
+      "expectEmpty": true
+    }
+  ]
+}

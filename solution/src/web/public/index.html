@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Memory</title>
+    <style>
+      :root {
+        --bg: #f4f5f7;
+        --card: #ffffff;
+        --ink: #1a1c20;
+        --ink-soft: #5b6169;
+        --ink-faint: #8b929b;
+        --line: #e4e6ea;
+        --line-soft: #eff0f3;
+        --accent: #2f6bdd;
+        --accent-soft: #eaf1fe;
+        --good: #0f7a58;
+        --good-soft: #e6f5ef;
+        --warn: #9a6205;
+        --warn-soft: #fdf3e2;
+        --stop: #b3372f;
+        --stop-soft: #fdeceb;
+        --ask: #7b3fbf;
+        --ask-soft: #f4ecfd;
+        --radius: 12px;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #101215;
+          --card: #191c21;
+          --ink: #e9ebee;
+          --ink-soft: #a6adb6;
+          --ink-faint: #767d87;
+          --line: #292d34;
+          --line-soft: #22262c;
+          --accent: #7ba6f7;
+          --accent-soft: #1b2637;
+          --good: #4cc79c;
+          --good-soft: #14291f;
+          --warn: #e3b168;
+          --warn-soft: #2b2415;
+          --stop: #f0827c;
+          --stop-soft: #2e1b1a;
+          --ask: #c08ef0;
+          --ask-soft: #241a30;
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 64px; }
+
+      header { padding: 28px 0 18px; }
+      h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.02em; }
+      .tagline { color: var(--ink-soft); font-size: 15px; max-width: 62ch; margin: 0; }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .card h2 {
+        font-size: 16px;
+        margin: 0 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .card .hint { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 14px; }
+      .step {
+        width: 23px; height: 23px; flex: none;
+        border-radius: 50%;
+        background: var(--accent); color: #fff;
+        font-size: 13px; font-weight: 600;
+        display: grid; place-items: center;
+      }
+
+      /* ---- walkthrough ---- */
+      .tour { border-color: var(--accent); background: var(--accent-soft); }
+      .tour h2 { color: var(--ink); }
+      .tour-steps { display: flex; flex-wrap: wrap; gap: 8px; }
+      .tour-steps button {
+        text-align: left;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+        border-radius: 9px;
+        padding: 9px 13px;
+        font: inherit;
+        font-size: 13.5px;
+        cursor: pointer;
+        transition: border-color .12s, transform .12s;
+      }
+      .tour-steps button:hover { border-color: var(--accent); transform: translateY(-1px); }
+      .tour-steps button.done { opacity: .5; }
+      .tour-steps button b { display: block; font-size: 13.5px; }
+      .tour-steps button span { color: var(--ink-faint); font-size: 12px; }
+
+      .narration {
+        margin-top: 14px;
+        padding: 13px 15px;
+        border-left: 3px solid var(--accent);
+        background: var(--card);
+        border-radius: 0 9px 9px 0;
+        font-size: 14px;
+      }
+      .narration strong { color: var(--accent); }
+
+      /* ---- forms ---- */
+      .row { display: flex; gap: 9px; }
+      input[type="text"], textarea {
+        flex: 1; min-width: 0;
+        padding: 11px 13px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--bg);
+        color: var(--ink);
+        font: inherit;
+        resize: vertical;
+      }
+      input[type="text"]:focus, textarea:focus {
+        outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent;
+      }
+      button.go {
+        padding: 11px 20px;
+        border: 0; border-radius: 9px;
+        background: var(--accent); color: #fff;
+        font: inherit; font-weight: 600;
+        cursor: pointer; white-space: nowrap;
+      }
+      button.go:hover { filter: brightness(1.07); }
+      button.go.ask { background: var(--ask); }
+      .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+      .chips button {
+        border: 1px dashed var(--line);
+        background: transparent; color: var(--ink-soft);
+        border-radius: 999px; padding: 5px 12px;
+        font: inherit; font-size: 13px; cursor: pointer;
+      }
+      .chips button:hover { border-style: solid; border-color: var(--accent); color: var(--accent); }
+      .chips .lbl { color: var(--ink-faint); font-size: 12.5px; align-self: center; margin-right: 2px; }
+
+      /* ---- answers ---- */
+      .answer {
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--good);
+        border-radius: 0 9px 9px 0;
+        padding: 13px 15px;
+        margin-top: 12px;
+      }
+      .answer.disputed { border-left-color: var(--warn); background: var(--warn-soft); }
+      .answer .big { font-size: 17px; font-weight: 600; }
+      .answer .sub { color: var(--ink-soft); font-size: 13px; margin-top: 3px; }
+      .nothing {
+        margin-top: 12px; padding: 15px;
+        border: 1px dashed var(--line); border-radius: 9px;
+        color: var(--ink-soft); font-size: 14px;
+      }
+      .nothing b { color: var(--ink); }
+
+      details { margin-top: 11px; }
+      summary {
+        cursor: pointer; color: var(--ink-soft);
+        font-size: 13.5px; padding: 5px 0; list-style: none;
+        user-select: none;
+      }
+      summary::-webkit-details-marker { display: none; }
+      summary::before { content: "▸ "; color: var(--ink-faint); }
+      details[open] > summary::before { content: "▾ "; }
+      summary:hover { color: var(--accent); }
+
+      .ignored { border-top: 1px solid var(--line-soft); margin-top: 4px; padding-top: 9px; }
+      .ignored .item {
+        display: flex; align-items: baseline; gap: 10px;
+        padding: 6px 0; font-size: 13.5px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .ignored .item:last-child { border-bottom: 0; }
+      .ignored .val { flex: 1; min-width: 0; color: var(--ink-soft); text-decoration: line-through; }
+      .ignored .why { color: var(--ink-faint); font-size: 12.5px; text-align: right; }
+
+      .maths { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+      .maths div { padding: 2px 0; }
+      .maths .tot { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; color: var(--ink); }
+
+      /* ---- decision needed ---- */
+      .decide { border-color: var(--warn); background: var(--warn-soft); }
+      .decide h2 { color: var(--warn); }
+      .question { font-size: 16px; margin: 0 0 4px; }
+      .because { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 12px; }
+      .options { display: flex; flex-wrap: wrap; gap: 9px; }
+      .options button {
+        border: 1px solid var(--warn); background: var(--card); color: var(--ink);
+        border-radius: 9px; padding: 10px 16px;
+        font: inherit; font-weight: 600; cursor: pointer;
+      }
+      .options button:hover { background: var(--warn); color: #fff; }
+      .decision-block { padding: 14px 0; border-top: 1px solid rgba(154,98,5,.25); }
+      .decision-block:first-of-type { border-top: 0; padding-top: 0; }
+
+      /* ---- what I know ---- */
+      .topic { padding: 15px 0; border-top: 1px solid var(--line-soft); }
+      .topic:first-of-type { border-top: 0; padding-top: 0; }
+      .topic-head {
+        display: flex; align-items: baseline; gap: 9px; margin-bottom: 8px;
+      }
+      .topic-name { font-weight: 600; font-size: 14.5px; }
+      .rule {
+        font-size: 11.5px; color: var(--ink-faint);
+        border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px;
+      }
+      .values { display: flex; flex-wrap: wrap; gap: 7px; }
+      .value {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--good-soft); color: var(--ink);
+        border: 1px solid transparent;
+        border-radius: 8px; padding: 6px 11px; font-size: 14px;
+      }
+      .value.disputed { background: var(--warn-soft); }
+      .value .x {
+        border: 0; background: transparent; color: var(--ink-faint);
+        cursor: pointer; font-size: 15px; line-height: 1; padding: 0 1px;
+      }
+      .value .x:hover { color: var(--stop); }
+      .past { margin-top: 9px; }
+      .past .item { padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+      .past .item:last-child { border-bottom: 0; }
+      .past .old { text-decoration: line-through; color: var(--ink-faint); }
+      .past .tag { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+      .tag-replaced { background: var(--warn-soft); color: var(--warn); }
+      .tag-deleted { background: var(--stop-soft); color: var(--stop); }
+      .quote { color: var(--ink-faint); font-size: 12.5px; margin-top: 2px; font-style: italic; }
+
+      /* ---- misc ---- */
+      .grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+      @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+      .col { min-width: 0; }
+      .scrolls { max-height: calc(100vh - 150px); overflow-y: auto; }
+      .counts { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--ink-faint); font-size: 12.5px; }
+      .counts b { color: var(--ink); font-weight: 600; }
+      .how li { margin-bottom: 7px; color: var(--ink-soft); font-size: 14px; }
+      .how b { color: var(--ink); }
+      .toast {
+        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+        background: var(--ink); color: var(--bg);
+        padding: 10px 18px; border-radius: 999px; font-size: 14px;
+        opacity: 0; pointer-events: none; transition: opacity .2s;
+      }
+      .toast.show { opacity: 1; }
+      .empty { color: var(--ink-faint); font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Memory</h1>
+        <p class="tagline">
+          An assistant that remembers what you tell it &mdash; and never repeats an old fact as
+          if it were still true. Tell it something, then ask it something.
+        </p>
+        <div class="counts" id="counts"></div>
+      </header>
+
+      <div id="decide-slot"></div>
+
+      <div class="card tour">
+        <h2>Not sure where to start?</h2>
+        <p class="hint">
+          Click these in order. Each one asks a question and explains what to notice in the
+          answer.
+        </p>
+        <div class="tour-steps" id="tour"></div>
+        <div class="narration" id="narration" hidden></div>
+      </div>
+
+      <div class="grid">
+        <div class="col">
+          <div class="card">
+            <h2><span class="step">1</span> Tell me something about yourself</h2>
+            <p class="hint">
+              Write it the way you'd say it to a person. Change your mind later and say so &mdash;
+              that's the interesting part.
+            </p>
+            <div class="row">
+              <textarea id="tell" rows="2" placeholder="I live in Pune and I'm allergic to peanuts."></textarea>
+              <button class="go" id="tell-go">Tell</button>
+            </div>
+            <div class="chips" id="tell-chips"></div>
+            <div id="tell-result"></div>
+          </div>
+
+          <div class="card">
+            <h2><span class="step">2</span> Ask me something</h2>
+            <p class="hint">You'll get the current answer, plus anything I deliberately ignored.</p>
+            <div class="row">
+              <input id="ask" type="text" placeholder="Where do I live?" autocomplete="off" />
+              <button class="go ask" id="ask-go">Ask</button>
+            </div>
+            <div class="chips" id="ask-chips"></div>
+            <div id="ask-result"></div>
+          </div>
+
+          <div class="card how">
+            <h2>How it decides</h2>
+            <ul class="how">
+              <li>
+                <b>Some things you can only have one of</b> &mdash; one home city, one employer.
+                Others you can have many of &mdash; allergies, skills. A new allergy gets added; a
+                new city is a contradiction.
+              </li>
+              <li>
+                <b>"Actually, I've moved to Mumbai" replaces the old fact.</b> Just saying
+                "I live in Mumbai" does not &mdash; that might be a slip, a second home, or someone
+                else. So it keeps both and asks you.
+              </li>
+              <li>
+                <b>Nothing is quietly erased.</b> Old facts are kept and marked as past, so you
+                can always see how it got here.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card scrolls">
+            <h2>What I know about you</h2>
+            <p class="hint">Current facts. Open "earlier values" to see what each one replaced.</p>
+            <div id="known"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+      const $ = (id) => document.getElementById(id);
+      const esc = (v) =>
+        String(v).replace(/[&<>"']/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+      let state = null;
+      /** The last question asked, so a stored answer on screen can be refreshed when the
+       * facts behind it change. A visibly stale answer is the one thing this app must not
+       * show. */
+      let lastQuestion = "";
+
+      // ---- plain-English translations of the engine's vocabulary --------------------
+      const WHY_IGNORED = {
+        superseded: "you replaced this later",
+        deleted: "you deleted this",
+        "below-score-floor": "not related to your question",
+        "beyond-limit": "less relevant than the answers above",
+      };
+
+      /** A memory phrased to the person it is about: "You live in Pune". */
+      function say(memory) {
+        const spec = state.attributes.find((a) => a.key === memory.attribute);
+        return spec ? spec.second.replace("{value}", memory.value) : memory.canonicalText;
+      }
+
+      function whyReturned(hit, attributes) {
+        const fields = hit.evidence.matchedFields;
+        const spec = attributes.find((a) => a.key === hit.memory.attribute);
+        const label = spec ? spec.label : hit.memory.attribute;
+        const parts = [];
+        if (fields.includes("attribute")) parts.push(`you asked about your <strong>${esc(label)}</strong>`);
+        if (fields.includes("value")) parts.push("your words matched what I had stored");
+        if (!parts.length && fields.includes("canonicalText")) parts.push("some of your words appear in this fact");
+        return parts.length ? parts.join(", and ") : "it was the closest thing I had";
+      }
+
+      async function api(path, options) {
+        const response = await fetch(path, options);
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || `request failed (${response.status})`);
+        return payload;
+      }
+
+      function toast(text) {
+        const el = $("toast");
+        el.textContent = text;
+        el.classList.add("show");
+        clearTimeout(el._t);
+        el._t = setTimeout(() => el.classList.remove("show"), 2600);
+      }
+
+      // ---- rendering ----------------------------------------------------------------
+
+      function renderCounts() {
+        const s = state.stats;
+        $("counts").innerHTML = `
+          <span><b>${s.active}</b> things I currently believe</span>
+          <span><b>${s.superseded}</b> replaced</span>
+          <span><b>${s.deleted}</b> deleted</span>
+          <span><b>${s.messages}</b> things you've told me</span>`;
+      }
+
+      function renderDecisions() {
+        const open = state.conflicts.filter((c) => c.status === "open");
+        const slot = $("decide-slot");
+        if (!open.length) { slot.innerHTML = ""; return; }
+
+        const byId = new Map(state.memories.map((m) => [m.id, m]));
+        slot.innerHTML = `<div class="card decide">
+          <h2>I need you to decide ${open.length > 1 ? `(${open.length})` : ""}</h2>
+          <p class="hint">
+            You told me two different things and never said which replaced the other. I won't
+            guess &mdash; guessing would throw away something you might still mean.
+          </p>
+          ${open.map((c) => {
+            const a = byId.get(c.memoryA), b = byId.get(c.memoryB);
+            const spec = state.attributes.find((s) => s.key === (a && a.attribute));
+            return `<div class="decision-block">
+              <p class="question">Which is right for your <strong>${esc(spec ? spec.label : "")}</strong>?</p>
+              <p class="because">You said "${esc(a ? a.value : "?")}", then later "${esc(b ? b.value : "?")}".</p>
+              <div class="options">
+                <button data-c="${c.id}" data-w="${c.memoryA}">${esc(a ? a.value : "?")}</button>
+                <button data-c="${c.id}" data-w="${c.memoryB}">${esc(b ? b.value : "?")}</button>
+              </div>
+            </div>`;
+          }).join("")}
+        </div>`;
+
+        for (const btn of slot.querySelectorAll(".options button")) {
+          btn.addEventListener("click", async () => {
+            try {
+              const out = await api("/api/resolve", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ conflictId: btn.dataset.c, winnerId: btn.dataset.w }),
+              });
+              state = out.state;
+              redraw();
+              toast(`Got it — "${out.winner.value}" it is.`);
+            } catch (e) { toast(e.message); }
+          });
+        }
+      }
+
+      function renderKnown() {
+        const byMessage = new Map(state.messages.map((m) => [m.id, m]));
+        const groups = new Map();
+        for (const memory of state.memories) {
+          if (!groups.has(memory.attribute)) groups.set(memory.attribute, []);
+          groups.get(memory.attribute).push(memory);
+        }
+        const contested = new Set();
+        for (const c of state.conflicts) {
+          if (c.status === "open") { contested.add(c.memoryA); contested.add(c.memoryB); }
+        }
+
+        if (!groups.size) {
+          $("known").innerHTML =
+            `<p class="empty">Nothing yet. Tell me something on the left and it'll show up here.</p>`;
+          return;
+        }
+
+        // Topics with history first — those are the ones worth looking at.
+        const ordered = [...groups.entries()].sort((a, b) => {
+          const pastA = a[1].filter((m) => m.state !== "active").length;
+          const pastB = b[1].filter((m) => m.state !== "active").length;
+          return pastB - pastA || a[0].localeCompare(b[0]);
+        });
+
+        $("known").innerHTML = ordered.map(([attribute, memories]) => {
+          const spec = state.attributes.find((s) => s.key === attribute);
+          const label = spec ? spec.label : attribute;
+          const single = memories[0].cardinality === "single";
+          const current = memories.filter((m) => m.state === "active");
+          const past = memories.filter((m) => m.state !== "active");
+
+          const values = current.length
+            ? current.map((m) => `<span class="value ${contested.has(m.id) ? "disputed" : ""}">
+                 ${esc(m.value)}
+                 <button class="x" title="Delete this" data-forget="${m.id}">&times;</button>
+               </span>`).join("")
+            : `<span class="empty">nothing current &mdash; you deleted it</span>`;
+
+          const history = past.length
+            ? `<details class="past">
+                 <summary>${past.length} earlier value${past.length > 1 ? "s" : ""}</summary>
+                 ${past.map((m) => {
+                    const msg = byMessage.get(m.provenance.messageId);
+                    return `<div class="item">
+                      <span class="old">${esc(m.value)}</span>
+                      <span class="tag ${m.state === "deleted" ? "tag-deleted" : "tag-replaced"}">
+                        ${m.state === "deleted" ? "deleted" : "replaced"}
+                      </span>
+                      ${msg ? `<div class="quote">you said: &ldquo;${esc(msg.text)}&rdquo;</div>` : ""}
+                    </div>`;
+                 }).join("")}
+               </details>`
+            : "";
+
+          return `<div class="topic">
+            <div class="topic-head">
+              <span class="topic-name">${esc(label[0].toUpperCase() + label.slice(1))}</span>
+              <span class="rule">${single ? "one at a time" : "several allowed"}</span>
+            </div>
+            <div class="values">${values}</div>
+            ${history}
+          </div>`;
+        }).join("");
+
+        for (const btn of $("known").querySelectorAll("[data-forget]")) {
+          btn.addEventListener("click", async () => {
+            try {
+              const out = await api("/api/forget", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ id: btn.dataset.forget }),
+              });
+              state = out.state;
+              redraw();
+              toast("Deleted. I won't bring it up again.");
+            } catch (e) { toast(e.message); }
+          });
+        }
+      }
+
+      function redraw() { renderCounts(); renderDecisions(); renderKnown(); }
+
+      // ---- actions -------------------------------------------------------------------
+
+      async function tell(text) {
+        if (!text.trim()) return;
+        $("tell").value = text;
+        let out;
+        try {
+          out = await api("/api/tell", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+        } catch (e) { toast(e.message); return; }
+
+        state = out.state;
+        redraw();
+
+        if (!out.outcomes.length) {
+          $("tell-result").innerHTML = `<div class="nothing">
+            <b>I didn't catch a fact in that.</b> I only understand a set number of phrasings
+            &mdash; try something like &ldquo;I live in Pune&rdquo; or &ldquo;I'm allergic to
+            peanuts&rdquo;.</div>`;
+          return;
+        }
+
+        $("tell-result").innerHTML = out.outcomes.map((o) => {
+          const spec = state.attributes.find((s) => s.key === o.memory.attribute);
+          const label = spec ? spec.label : o.memory.attribute;
+          if (o.decision === "corrected") {
+            return `<div class="answer">
+              <div class="big">Updated your ${esc(label)} to &ldquo;${esc(o.memory.value)}&rdquo;.</div>
+              <div class="sub">You signalled a correction, so I replaced
+                ${o.superseded.map((m) => `&ldquo;${esc(m.value)}&rdquo;`).join(", ")}.
+                It's kept in the history, not deleted.</div></div>`;
+          }
+          if (o.decision === "contested") {
+            return `<div class="answer disputed">
+              <div class="big">That contradicts what I had for your ${esc(label)}.</div>
+              <div class="sub">You didn't say it was a correction, so I've kept both and
+                I'm asking you which is right &mdash; see the box at the top.</div></div>`;
+          }
+          if (o.decision === "reaffirmed") {
+            return `<div class="answer">
+              <div class="big">Already knew that one.</div>
+              <div class="sub">Your ${esc(label)} is still &ldquo;${esc(o.memory.value)}&rdquo;
+                &mdash; no duplicate created.</div></div>`;
+          }
+          return `<div class="answer">
+            <div class="big">Noted: your ${esc(label)} is &ldquo;${esc(o.memory.value)}&rdquo;.</div>
+            <div class="sub">${spec && spec.cardinality === "multi"
+              ? "You can have several of these, so I added it alongside the others."
+              : "First thing you've told me about this."}</div></div>`;
+        }).join("");
+
+        // The answer still on screen may have just been invalidated by what you said.
+        // Leaving "You live in Pune" visible after correcting it to Goa would be the very
+        // mistake this whole project is about.
+        if (lastQuestion) await ask(lastQuestion);
+      }
+
+      async function ask(question) {
+        if (!question.trim()) return;
+        $("ask").value = question;
+        lastQuestion = question;
+        let out;
+        try { out = await api(`/api/recall?q=${encodeURIComponent(question)}&limit=5`); }
+        catch (e) { toast(e.message); return; }
+
+        const r = out.result;
+        const hidden = r.excluded.filter((x) => x.reason === "superseded" || x.reason === "deleted");
+
+        let html = "";
+        if (!r.results.length) {
+          html += `<div class="nothing"><b>I don't have a current answer for that.</b> ${
+            hidden.length
+              ? `I do have ${hidden.length} older fact${hidden.length > 1 ? "s" : ""} that would
+                 have matched, but ${hidden.length > 1 ? "they're" : "it's"} out of date &mdash;
+                 so telling you would be worse than saying nothing.`
+              : "Nothing I've stored relates to it."}</div>`;
+        } else {
+          html += r.results.map((hit) => `
+            <div class="answer ${hit.contestedBy.length ? "disputed" : ""}">
+              <div class="big">${esc(say(hit.memory))}</div>
+              <div class="sub">${hit.contestedBy.length
+                ? "This one's disputed — you've told me two different things."
+                : `I picked this because ${whyReturned(hit, state.attributes)}.`}</div>
+              <details>
+                <summary>Show the scoring</summary>
+                <div class="maths">
+                  ${hit.evidence.components.map((c) =>
+                    `<div>+${c.points.toFixed(2)} &nbsp; ${esc(c.field)} &nbsp; ${esc(c.rule)}</div>`).join("")}
+                  <div class="tot">= ${hit.evidence.score.toFixed(2)} total</div>
+                </div>
+              </details>
+            </div>`).join("");
+        }
+
+        if (r.excluded.length) {
+          html += `<details ${hidden.length ? "open" : ""}>
+            <summary>I ignored ${r.excluded.length} fact${r.excluded.length > 1 ? "s" : ""} on purpose</summary>
+            <div class="ignored">
+              ${r.excluded.map((x) => {
+                const memory = state.memories.find((m) => m.id === x.memoryId);
+                return `<div class="item">
+                  <span class="val">${esc(memory ? say(memory) : x.canonicalText)}</span>
+                  <span class="why">${esc(WHY_IGNORED[x.reason] || x.reason)}</span>
+                </div>`;
+              }).join("")}
+            </div></details>`;
+        }
+
+        $("ask-result").innerHTML = html;
+      }
+
+      // ---- guided walkthrough ---------------------------------------------------------
+      const TOUR = [
+        {
+          label: "Where do I live?",
+          note: "One place to live",
+          run: () => ask("where do I live"),
+          say: `One answer — even though I've lived in three places. Open
+                <strong>“I ignored 2 facts on purpose”</strong> to see the other two sitting there,
+                marked as replaced.`,
+        },
+        {
+          label: "Am I vegetarian?",
+          note: "The best match is wrong",
+          run: () => ask("am I vegetarian"),
+          say: `The word you typed — <strong>vegetarian</strong> — is the <em>out of date</em>
+                answer, and it's the strongest word match in the whole store. It still loses.
+                Being true beats being relevant.`,
+        },
+        {
+          label: "What's my phone number?",
+          note: "Silence is the right answer",
+          run: () => ask("what is my phone number"),
+          say: `You deleted it, so I say nothing. The tempting bug is to fall back to your
+                <em>old</em> number — that would be worse than admitting I don't know.`,
+        },
+        {
+          label: "What should you call me?",
+          note: "It refuses to guess",
+          // Deliberately not "what name do I prefer": "prefer" is also an alias for tool
+          // preferences, so that phrasing correctly but confusingly returns your editor
+          // alongside your name. "call" belongs to preferred_name alone.
+          run: () => ask("what should you call me"),
+          say: `Two answers, both flagged. You said “Sam”, then “Samir”, and never said one
+                replaced the other. Scroll up — it's asking you to settle it.`,
+        },
+        {
+          label: 'Say "I\'ve moved to Goa"',
+          note: "Watch a fact get replaced",
+          run: () => tell("Actually, I've moved to Goa."),
+          say: `Because you said <strong>“Actually”</strong>, I treated it as a correction and
+                replaced your city. Check <strong>Home city</strong> on the right — the old one
+                is under “earlier values”, not gone.`,
+        },
+        {
+          label: 'Say "I live in Delhi"',
+          note: "Same fact, no correction word",
+          run: () => tell("I live in Delhi."),
+          say: `Identical kind of statement, but no correction word this time — so I
+                <strong>didn't</strong> overwrite anything. I kept both and asked you at the top.
+                That difference is the whole project.`,
+        },
+      ];
+
+      function renderTour() {
+        $("tour").innerHTML = TOUR.map((step, i) =>
+          `<button data-i="${i}"><b>${i + 1}. ${esc(step.label)}</b><span>${esc(step.note)}</span></button>`
+        ).join("");
+
+        for (const btn of $("tour").querySelectorAll("button")) {
+          btn.addEventListener("click", async () => {
+            const step = TOUR[Number(btn.dataset.i)];
+            await step.run();
+            btn.classList.add("done");
+            const n = $("narration");
+            n.hidden = false;
+            n.innerHTML = `<strong>Look for:</strong> ${step.say}`;
+            n.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          });
+        }
+      }
+
+      const TELL_EXAMPLES = [
+        "I live in Pune.",
+        "I'm allergic to peanuts and shellfish.",
+        "Actually, I've moved to Mumbai.",
+        "I work at Acme Corp.",
+        "Call me Sam.",
+      ];
+      const ASK_EXAMPLES = [
+        "where do I live",
+        "what are my allergies",
+        "who do I work for",
+        "am I vegetarian",
+        "what should you call me",
+      ];
+
+      function renderChips() {
+        $("tell-chips").innerHTML =
+          `<span class="lbl">Try:</span>` +
+          TELL_EXAMPLES.map((t) => `<button data-t="${esc(t)}">${esc(t)}</button>`).join("");
+        $("ask-chips").innerHTML =
+          `<span class="lbl">Try:</span>` +
+          ASK_EXAMPLES.map((t) => `<button data-q="${esc(t)}">${esc(t)}</button>`).join("");
+
+        for (const b of $("tell-chips").querySelectorAll("button")) {
+          b.addEventListener("click", () => tell(b.dataset.t));
+        }
+        for (const b of $("ask-chips").querySelectorAll("button")) {
+          b.addEventListener("click", () => ask(b.dataset.q));
+        }
+      }
+
+      $("tell-go").addEventListener("click", () => tell($("tell").value));
+      $("tell").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); tell($("tell").value); }
+      });
+      $("ask-go").addEventListener("click", () => ask($("ask").value));
+      $("ask").addEventListener("keydown", (e) => { if (e.key === "Enter") ask($("ask").value); });
+
+      state = await api("/api/state");
+      redraw();
+      renderTour();
+      renderChips();
+      if (state.stats.active > 0) await ask("where do I live");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "trustworthy-memory",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A memory engine that stores conversational facts with traceable provenance, retrieves bounded relevant context with evidence, and handles corrections and deletions without presenting stale facts as current.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "preflight": "node scripts/preflight.mjs",
+    "test": "node scripts/preflight.mjs && node --test --disable-warning=ExperimentalWarning \"tests/**/*.test.ts\"",
+    "bench": "node scripts/preflight.mjs && node --disable-warning=ExperimentalWarning bench/run.ts",
+    "bench:verbose": "node --disable-warning=ExperimentalWarning bench/run.ts --verbose",
+    "mem": "node --disable-warning=ExperimentalWarning src/cli/index.ts",
+    "inspector": "node --disable-warning=ExperimentalWarning src/web/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "//": "devDependencies are OPTIONAL and only needed for `npm run typecheck`. Tests, the benchmark, the CLI and the inspector all run with no install at all.",
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.9.0"
+  }
+}

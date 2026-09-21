@@ -1,0 +1,292 @@
+{
+  "name": "single-user conversational corpus",
+  "description": "A deterministic script of user messages. Every memory in the benchmark is produced by running these messages through the real extraction and reconciliation path, so the fixture exercises the whole engine rather than seeding rows directly into the store. Labels are how the query file refers to memories without hard-coding generated ids.",
+  "clockStart": "2026-01-05T09:00:00.000Z",
+  "clockStepMs": 60000,
+  "script": [
+    {
+      "kind": "ingest",
+      "text": "I live in Pune.",
+      "expect": [{ "label": "city-pune-1", "attribute": "home_city", "value": "Pune", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I work at Acme Corp.",
+      "expect": [{ "label": "employer-acme", "attribute": "employer", "value": "Acme Corp", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "My title is junior designer.",
+      "expect": [{ "label": "title-junior", "attribute": "job_title", "value": "junior designer", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I'm a vegetarian.",
+      "expect": [{ "label": "diet-vegetarian", "attribute": "dietary_preference", "value": "vegetarian", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "My timezone is IST.",
+      "expect": [{ "label": "tz-ist", "attribute": "timezone", "value": "IST", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "My number is +91 98765 43210.",
+      "expect": [{ "label": "phone-old", "attribute": "phone_number", "value": "+91 98765 43210", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I'm allergic to peanuts and shellfish.",
+      "expect": [
+        { "label": "allergy-peanuts", "attribute": "allergy", "value": "peanuts", "decision": "stored" },
+        { "label": "allergy-shellfish", "attribute": "allergy", "value": "shellfish", "decision": "stored" }
+      ]
+    },
+    {
+      "kind": "ingest",
+      "text": "I'm allergic to pollen.",
+      "expect": [{ "label": "allergy-pollen", "attribute": "allergy", "value": "pollen", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I like hiking and jazz.",
+      "expect": [
+        { "label": "likes-hiking", "attribute": "likes", "value": "hiking", "decision": "stored" },
+        { "label": "likes-jazz", "attribute": "likes", "value": "jazz", "decision": "stored" }
+      ]
+    },
+    {
+      "kind": "ingest",
+      "text": "My favourite drink is filter coffee.",
+      "expect": [{ "label": "likes-coffee", "attribute": "likes", "value": "filter coffee", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I dislike crowded trains and spicy food.",
+      "expect": [
+        { "label": "dislikes-trains", "attribute": "dislikes", "value": "crowded trains", "decision": "stored" },
+        { "label": "dislikes-spicy", "attribute": "dislikes", "value": "spicy food", "decision": "stored" }
+      ]
+    },
+    {
+      "kind": "ingest",
+      "text": "I'm proficient in TypeScript, PostgreSQL and Kubernetes.",
+      "expect": [
+        { "label": "skill-ts", "attribute": "skill", "value": "TypeScript", "decision": "stored" },
+        { "label": "skill-pg", "attribute": "skill", "value": "PostgreSQL", "decision": "stored" },
+        { "label": "skill-k8s", "attribute": "skill", "value": "Kubernetes", "decision": "stored" }
+      ]
+    },
+    {
+      "kind": "ingest",
+      "text": "My cat is called Mishti.",
+      "expect": [{ "label": "pet-mishti", "attribute": "pet", "value": "Mishti", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I have a dog named Laddoo.",
+      "expect": [{ "label": "pet-laddoo", "attribute": "pet", "value": "Laddoo", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I'm learning Rust and Go.",
+      "expect": [
+        { "label": "goal-rust", "attribute": "goal", "value": "learn Rust", "decision": "stored" },
+        { "label": "goal-go", "attribute": "goal", "value": "learn Go", "decision": "stored" }
+      ]
+    },
+    {
+      "kind": "ingest",
+      "text": "I want to run a marathon.",
+      "expect": [{ "label": "goal-marathon", "attribute": "goal", "value": "run a marathon", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I prefer VS Code and tmux.",
+      "expect": [
+        { "label": "tool-vscode", "attribute": "tool_preference", "value": "VS Code", "decision": "stored" },
+        { "label": "tool-tmux", "attribute": "tool_preference", "value": "tmux", "decision": "stored" }
+      ]
+    },
+    {
+      "kind": "ingest",
+      "text": "I use Figma.",
+      "expect": [{ "label": "tool-figma", "attribute": "tool_preference", "value": "Figma", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "Call me Sam.",
+      "expect": [{ "label": "name-sam", "attribute": "preferred_name", "value": "Sam", "decision": "stored" }]
+    },
+    {
+      "kind": "ingest",
+      "text": "I work remotely.",
+      "expect": [{ "label": "workmode-remotely", "attribute": "work_mode", "value": "remotely", "decision": "stored" }]
+    },
+
+    {
+      "comment": "Chain 1/6 -- home_city. An explicit correction supersedes Pune.",
+      "kind": "ingest",
+      "text": "Actually, I've moved to Mumbai.",
+      "expect": [
+        {
+          "label": "city-mumbai",
+          "attribute": "home_city",
+          "value": "Mumbai",
+          "decision": "corrected",
+          "supersedes": ["city-pune-1"]
+        }
+      ]
+    },
+    {
+      "comment": "Chain 2/6 -- employer, first link. 'I've left' is the correction marker.",
+      "kind": "ingest",
+      "text": "I've left Acme Corp, I've joined Globex.",
+      "expect": [
+        {
+          "label": "employer-globex",
+          "attribute": "employer",
+          "value": "Globex",
+          "decision": "corrected",
+          "supersedes": ["employer-acme"]
+        }
+      ]
+    },
+    {
+      "comment": "Chain 2/6 -- employer, second link. Three memories, one current.",
+      "kind": "ingest",
+      "text": "Update: I now work at Initech.",
+      "expect": [
+        {
+          "label": "employer-initech",
+          "attribute": "employer",
+          "value": "Initech",
+          "decision": "corrected",
+          "supersedes": ["employer-globex"]
+        }
+      ]
+    },
+    {
+      "comment": "Chain 3/6 -- job_title. A promotion is a change of title, not an extra one.",
+      "kind": "ingest",
+      "text": "I've been promoted to senior designer.",
+      "expect": [
+        {
+          "label": "title-senior",
+          "attribute": "job_title",
+          "value": "senior designer",
+          "decision": "corrected",
+          "supersedes": ["title-junior"]
+        }
+      ]
+    },
+    {
+      "comment": "Chain 4/6 -- timezone.",
+      "kind": "ingest",
+      "text": "Correction: my timezone is CET.",
+      "expect": [
+        { "label": "tz-cet", "attribute": "timezone", "value": "CET", "decision": "corrected", "supersedes": ["tz-ist"] }
+      ]
+    },
+    {
+      "comment": "Chain 5/6 -- phone_number. This memory is purged later in the script.",
+      "kind": "ingest",
+      "text": "Actually my number is +91 90000 11111.",
+      "expect": [
+        {
+          "label": "phone-new",
+          "attribute": "phone_number",
+          "value": "+91 90000 11111",
+          "decision": "corrected",
+          "supersedes": ["phone-old"]
+        }
+      ]
+    },
+    {
+      "comment": "Chain 6/6 -- dietary_preference.",
+      "kind": "ingest",
+      "text": "Actually I'm a vegan.",
+      "expect": [
+        {
+          "label": "diet-vegan",
+          "attribute": "dietary_preference",
+          "value": "vegan",
+          "decision": "corrected",
+          "supersedes": ["diet-vegetarian"]
+        }
+      ]
+    },
+    {
+      "comment": "The follow-up case. Returning to an old value creates a THIRD memory; it does not revive city-pune-1, which stays superseded forever.",
+      "kind": "ingest",
+      "text": "I've moved back to Pune.",
+      "expect": [
+        {
+          "label": "city-pune-2",
+          "attribute": "home_city",
+          "value": "Pune",
+          "decision": "corrected",
+          "supersedes": ["city-mumbai"]
+        }
+      ]
+    },
+    {
+      "comment": "Restating a current fact must not create a duplicate.",
+      "kind": "ingest",
+      "text": "I live in Pune.",
+      "expect": [{ "label": "city-pune-2", "attribute": "home_city", "value": "Pune", "decision": "reaffirmed" }]
+    },
+
+    {
+      "comment": "Ambiguous conflict 1/2 -- contradicts work_mode with no correction marker.",
+      "kind": "ingest",
+      "text": "I work hybrid.",
+      "expect": [
+        {
+          "label": "workmode-hybrid",
+          "attribute": "work_mode",
+          "value": "hybrid",
+          "decision": "contested",
+          "contestsWith": "workmode-remotely"
+        }
+      ]
+    },
+    {
+      "comment": "Ambiguous conflict 2/2 -- Sam and Samir may be the same person shortening a name, or a genuine change. The engine refuses to guess.",
+      "kind": "ingest",
+      "text": "My name is Samir.",
+      "expect": [
+        {
+          "label": "name-samir",
+          "attribute": "preferred_name",
+          "value": "Samir",
+          "decision": "contested",
+          "contestsWith": "name-sam"
+        }
+      ]
+    },
+
+    {
+      "comment": "Soft delete -- withdrawn from retrieval, value still readable for audit.",
+      "kind": "forget",
+      "target": "likes-jazz",
+      "mode": "soft",
+      "reason": "user asked to remove this preference"
+    },
+    {
+      "comment": "Hard delete -- the phone number is erased, leaving only a tombstone.",
+      "kind": "forget",
+      "target": "phone-new",
+      "mode": "purged",
+      "reason": "user requested erasure of contact details"
+    }
+  ],
+  "expectedState": {
+    "memories": 37,
+    "active": 27,
+    "superseded": 8,
+    "deleted": 2,
+    "openConflicts": 2,
+    "supersessionChains": 6
+  }
+}

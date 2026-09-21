@@ -1,0 +1,16 @@
+# Optional: only needed for `npm run typecheck`.
+node_modules/
+
+# Generated databases. The fixture in fixtures/ is the committed source of truth; any .db
+# file is reproducible with `mem seed`.
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
